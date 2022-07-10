@@ -1,0 +1,89 @@
+# This is a basic workflow to help you get started with Actions
+name: Google Cloud Run Development Pipeline
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push: 
+    tags: 
+      - dev-[1-9]+.[0-9]+.[0-9]+
+    
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: ${{secrets.GCP_PROJECT_ID}}
+  REGION: asia-south1
+  SERVICE_NAME: ${{secrets.GCR_PROJECT_DEV}}
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      
+      - name: Setup Node.js (NPM)
+        uses: actions/setup-node@master
+        with:
+          node-version: '14'
+      
+      # - name: Install dependencies
+      #   run: npm install
+      #   env:
+      #     CI: true
+          
+      # # - name: Start Server
+      # #   run: npm run start:prod
+        
+      # - name: Archive Production Artifact
+      #  uses: actions/upload-artifact@master
+      #  with:
+      #    name: build
+      #    path: build
+        
+  deploy-gcr:
+    name: Deploy to GCR
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      #       - name: Download Artifact
+      #         uses: actions/download-artifact@master
+      #         with:
+      #           name: build
+      #           path: build
+          
+      # set up gcloud CLI
+      - name: Setup gcloud CLI
+        id: gcloud
+        uses: google-github-actions/setup-gcloud@v0
+        with:
+          version: "290.0.1"
+          service_account_key: ${{ secrets.GCP_SA_KEY_JSON_DEV }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          
+      - name: Build & Push
+        run: |-
+          gcloud builds submit \
+          --quiet \
+          --config cloudbuilddev.yaml .
+    
+            
+      #         working-directory: .docker
+        
+      - name: Deploy GCR
+        run: |-
+          gcloud run deploy "$SERVICE_NAME" \
+            --quiet \
+            --region "$REGION" \
+            --image "gcr.io/$PROJECT_ID/quickstart-image" \
+            --platform "managed" \
+            --allow-unauthenticated
