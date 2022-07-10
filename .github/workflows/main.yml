@@ -13,5 +13,5 @@ jobs:
       - uses: akhileshns/heroku-deploy@v3.12.12 # This is the action
         with:
           heroku_api_key: "eb5f389a-ee1f-4515-ad1c-cb76cd460ca2"
-          heroku_app_name: "voting-app"
+          heroku_app_name: "voting-app999123455"
           heroku_email: "aniketsinha99123490@gmail.com"
